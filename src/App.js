@@ -1,199 +1,271 @@
-/* App.js */
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './App.css';
 
-// Initial Mock Data
-const initialCustomers = [
-  { id: 1, name: 'Rahul Sharma', phone: '9876543210', transactions: [
-      { id: 101, type: 'given', amount: 500, date: '2023-10-25' },
-      { id: 102, type: 'received', amount: 200, date: '2023-10-26' }
-  ]},
-  { id: 2, name: 'Amit Verma', phone: '9123456789', transactions: [] },
-];
+const BACKEND_URL = "https://kirana-backend-4e93.onrender.com"; 
 
 function App() {
-  const [view, setView] = useState('home'); // 'home' or 'details'
-  const [customers, setCustomers] = useState(initialCustomers);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [pin, setPin] = useState('');
+  const [activeTab, setActiveTab] = useState('home'); 
+  const [customers, setCustomers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // New Customer States
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newCustomerName, setNewCustomerName] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newFather, setNewFather] = useState(''); 
+  const [newCity, setNewCity] = useState('');     
+  const [newMobile, setNewMobile] = useState('');
 
-  // --- BACK BUTTON HANDLING START ---
+  // Transaction States
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [txnAmount, setTxnAmount] = useState('');
+  const [txnDesc, setTxnDesc] = useState('');
+  const [txnType, setTxnType] = useState('GAVE_GOODS');
+  const [history, setHistory] = useState([]);
+
   useEffect(() => {
-    // When the component mounts, we listen for the 'popstate' event (back button)
-    const handleBackButton = (event) => {
-      if (view === 'details') {
-        // If we are in details view, going back means going to home
-        setView('home');
-        setSelectedCustomer(null);
-      } else if (showAddModal) {
-          // If modal is open, back button closes it
-          setShowAddModal(false);
-      }
-      // If view is home, the browser will handle the exit normally
-    };
+    const savedLogin = localStorage.getItem('isLoggedIn');
+    if (savedLogin === 'true') { setIsLoggedIn(true); fetchCustomers(); }
+  }, []);
 
-    window.addEventListener('popstate', handleBackButton);
-
-    return () => {
-      window.removeEventListener('popstate', handleBackButton);
-    };
-  }, [view, showAddModal]);
-
-  const navigateToDetails = (customer) => {
-    // 1. Push a new state to history so the back button has something to go back "from"
-    window.history.pushState({ page: 'details' }, '', '');
-    // 2. Update React State
-    setSelectedCustomer(customer);
-    setView('details');
+  const fetchCustomers = async () => {
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/customers`);
+      setCustomers(res.data);
+    } catch (err) { console.error("Error"); }
   };
 
-  const navigateHome = () => {
-    // Go back in history (this triggers the popstate listener above)
-    window.history.back(); 
+  const submitLogin = async () => {
+    try {
+      const res = await axios.post(`${BACKEND_URL}/api/login`, { pin });
+      if (res.data.success) { setIsLoggedIn(true); localStorage.setItem('isLoggedIn','true'); fetchCustomers(); }
+    } catch (e) { alert("Wrong PIN"); setPin(''); }
   };
-  // --- BACK BUTTON HANDLING END ---
-
-  // Calculate Net Balance
-  const calculateBalance = (transactions) => {
-    let balance = 0;
-    transactions.forEach(t => {
-      if (t.type === 'given') balance += t.amount;
-      if (t.type === 'received') balance -= t.amount;
-    });
-    return balance;
-  };
-
-  const handleAddCustomer = () => {
-    if (newCustomerName.trim()) {
-      const newCust = {
-        id: Date.now(),
-        name: newCustomerName,
-        phone: '',
-        transactions: []
-      };
-      setCustomers([...customers, newCust]);
-      setNewCustomerName('');
-      setShowAddModal(false);
+  const handlePin = (n) => { if (pin.length < 4) setPin(pin + n); };
+  
+  // NEW: Logout Function
+  const handleLogout = () => {
+    if(window.confirm("Do you want to logout?")) {
+        setIsLoggedIn(false); 
+        localStorage.removeItem('isLoggedIn');
+        setPin('');
     }
   };
 
-  const handleTransaction = (type, amount) => {
-    if (!amount) return;
-    const updatedCustomers = customers.map(c => {
-      if (c.id === selectedCustomer.id) {
-        const newTrans = {
-          id: Date.now(),
-          type: type,
-          amount: parseFloat(amount),
-          date: new Date().toISOString().split('T')[0]
-        };
-        const updatedC = { ...c, transactions: [...c.transactions, newTrans] };
-        setSelectedCustomer(updatedC); // Update current view
-        return updatedC;
-      }
-      return c;
+  const handleAddCustomer = async () => {
+    if (!newName) return alert("Name is mandatory!");
+    await axios.post(`${BACKEND_URL}/api/customers`, {
+      name: newName, fatherName: newFather, city: newCity, mobile: newMobile
     });
-    setCustomers(updatedCustomers);
+    setNewName(''); setNewFather(''); setNewCity(''); setNewMobile('');
+    setShowAddModal(false);
+    fetchCustomers();
   };
 
-  return (
-    <div className="app-container">
-      
-      {/* --- HOME VIEW --- */}
-      {view === 'home' && (
-        <>
-          <header className="header">
-            <h1>My Ledger</h1>
-          </header>
+  const openHistory = async (customer) => {
+    setSelectedCustomer(customer);
+    const res = await axios.get(`${BACKEND_URL}/api/transactions/${customer._id}`);
+    setHistory(res.data);
+  };
 
-          <div className="customer-list">
-            {customers.map(cust => {
-              const bal = calculateBalance(cust.transactions);
-              return (
-                <div key={cust.id} className="customer-card" onClick={() => navigateToDetails(cust)}>
-                  <div className="avatar">{cust.name.charAt(0)}</div>
-                  <div className="info">
-                    <div className="name">{cust.name}</div>
-                    <div className="date">Tap to view details</div>
-                  </div>
-                  {/* Color logic for Home Screen Balance */}
-                  <div className={`balance ${bal >= 0 ? 'text-red' : 'text-green'}`}>
-                    {bal >= 0 ? `₹${bal}` : `₹${Math.abs(bal)} Adv`}
-                  </div>
-                </div>
-              );
-            })}
+  const saveTransaction = async () => {
+    if (!txnAmount) return;
+    await axios.post(`${BACKEND_URL}/api/transaction`, {
+      customerId: selectedCustomer._id, type: txnType, amount: Number(txnAmount), description: txnDesc
+    });
+    setTxnAmount(''); setTxnDesc(''); fetchCustomers(); openHistory(selectedCustomer);
+  };
+
+  const deleteTransaction = async (id) => {
+    if(!window.confirm("Delete?")) return;
+    await axios.delete(`${BACKEND_URL}/api/transaction/${id}`);
+    fetchCustomers(); openHistory(selectedCustomer);
+  };
+
+  const getCustomersByCity = () => {
+    const groups = {};
+    customers.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).forEach(c => {
+      const cityName = c.city ? c.city.toUpperCase() : "OTHER";
+      if (!groups[cityName]) groups[cityName] = [];
+      groups[cityName].push(c);
+    });
+    return groups;
+  };
+
+  // === 1. INITIALS HELPER (Returns 'MK' for 'Makhanlal') ===
+  const getInitials = (name) => {
+    if (!name) return "KB";
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  // === 2. CARD RENDERER (Fixed) ===
+  const renderCustomerCard = (c) => {
+    const isCredit = c.totalBalance >= 0;
+    return (
+      <div className="card" key={c._id} onClick={() => openHistory(c)}>
+        {/* AVATAR WITH INITIALS */}
+        <div className={`card-icon ${isCredit ? 'icon-credit' : 'icon-paid'}`}>
+          {getInitials(c.name)}
+        </div>
+        
+        <div className="card-info">
+          <h3>{c.name}</h3>
+          <p className="card-details">
+             {c.city ? `📍 ${c.city}` : c.mobile ? `📞 ${c.mobile}` : 'No details'}
+          </p>
+        </div>
+
+        <div className="card-right">
+          <div className={`amount ${isCredit ? 'txt-credit' : 'txt-paid'}`}>
+            ₹ {Math.abs(c.totalBalance)}
           </div>
+          <span className={`status ${isCredit ? 'txt-credit' : 'txt-paid'}`}>
+            {isCredit ? '(Credit)' : '(Paid)'}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
-          <button className="fab" onClick={() => setShowAddModal(true)}>+</button>
+  // --- LOCK SCREEN ---
+  if (!isLoggedIn) return (
+    <div className="login-container">
+      <div className="login-box">
+        <div style={{fontSize:'3rem', marginBottom:'10px'}}>🔐</div>
+        <h2 style={{marginBottom:'10px', color:'var(--primary)', fontWeight:'800'}}>KiranaBook</h2>
+        <p style={{color:'#6b7280', marginBottom:'30px'}}>Secure Login</p>
+        <div className="pin-dots">{pin.split('').map(()=>'•').join('')}</div>
+        <div className="num-pad">
+          {[1,2,3,4,5,6,7,8,9].map(n=><button key={n} className="num-btn" onClick={()=>handlePin(n)}>{n}</button>)}
+          <button className="num-btn clr-btn" onClick={()=>setPin('')}>CLR</button>
+          <button className="num-btn" onClick={()=>handlePin(0)}>0</button>
+          <button className="num-btn enter-btn" onClick={submitLogin}>→</button>
+        </div>
+      </div>
+    </div>
+  );
 
-          {/* ADD CUSTOMER MODAL (CENTERED) */}
-          {showAddModal && (
-            <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">Add New Customer</div>
-                <div className="form-group">
-                  <input 
-                    type="text" 
-                    placeholder="Customer Name" 
-                    value={newCustomerName}
-                    onChange={(e) => setNewCustomerName(e.target.value)}
-                    autoFocus
-                  />
-                </div>
-                <div className="modal-actions">
-                  <button className="btn btn-cancel" onClick={() => setShowAddModal(false)}>Cancel</button>
-                  <button className="btn btn-save" onClick={handleAddCustomer}>Save</button>
-                </div>
+  // --- HISTORY VIEW ---
+  if (selectedCustomer) return (
+    <div style={{minHeight:'100vh', background:'var(--bg)'}}>
+      <div className="app-header">
+        <button className="icon-btn" onClick={() => setSelectedCustomer(null)}>←</button>
+        <span className="app-title">{selectedCustomer.name}</span>
+        <div style={{width:'24px'}}></div>
+      </div>
+      <div style={{padding:'30px 20px', textAlign:'center', background:'var(--primary)', color:'white', borderRadius:'0 0 24px 24px'}}>
+        <p style={{fontSize:'0.9rem', opacity:0.9, marginBottom:'5px'}}>Total Balance</p>
+        <h1 style={{fontSize:'3rem', fontWeight:'800'}}>₹ {Math.abs(selectedCustomer.totalBalance)}</h1>
+        <span style={{background:'rgba(255,255,255,0.2)', padding:'6px 12px', borderRadius:'20px', fontSize:'0.85rem', fontWeight:'600', marginTop:'10px', display:'inline-block'}}>
+            {selectedCustomer.totalBalance >= 0 ? 'You will Receive' : 'You need to Pay'}
+        </span>
+      </div>
+      <div className="container" style={{marginTop:'-20px'}}>
+        <div style={{background:'var(--surface)', borderRadius:'var(--radius)', padding:'20px', boxShadow:'var(--shadow)'}}>
+          <h3 className="section-title">Transactions</h3>
+          {history.map(txn => (
+            <div className="history-row" key={txn._id}>
+              <div>
+                <p style={{fontWeight:'600', marginBottom:'4px'}}>{txn.description || (txn.type === 'GAVE_GOODS' ? 'Goods Sold' : 'Payment Received')}</p>
+                <p style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{new Date(txn.date).toLocaleDateString()}</p>
+              </div>
+              <div style={{textAlign:'right', display:'flex', alignItems:'center'}}>
+                <span className={`txn-badge ${txn.type === 'GAVE_GOODS' ? 'badge-gave' : 'badge-got'}`}>
+                  {txn.type === 'GAVE_GOODS' ? '+' : '-'} ₹{txn.amount}
+                </span>
+                <button onClick={()=>deleteTransaction(txn._id)} style={{border:'none', background:'none', marginLeft:'15px', color:'#9ca3af', fontSize:'1.2rem'}}>🗑️</button>
               </div>
             </div>
-          )}
-        </>
+          ))}
+        </div>
+      </div>
+      <button className="fab" onClick={()=> setShowAddModal(true)}>+</button>
+      
+      {/* MODAL IS DOWN BELOW */}
+      {showAddModal && (
+        <div className="modal-overlay" onClick={(e)=>e.target.className==='modal-overlay' && setShowAddModal(false)}>
+          <div className="modal-content">
+            <button className="btn-close" onClick={()=>setShowAddModal(false)}>×</button>
+            <h2 className="modal-title">New Entry</h2>
+            <div style={{display:'flex', gap:'15px', marginBottom:'25px'}}>
+              <button style={{flex:1, padding:'15px', border: txnType==='GAVE_GOODS'?'2px solid var(--danger)':'1px solid #e5e7eb', background: txnType==='GAVE_GOODS'?'#fef2f2':'white', color: txnType==='GAVE_GOODS'?'var(--danger)':'var(--text-muted)', borderRadius:'var(--radius)', fontWeight:'bold'}} onClick={()=>setTxnType('GAVE_GOODS')}>🔴 GAVE</button>
+              <button style={{flex:1, padding:'15px', border: txnType==='GOT_PAYMENT'?'2px solid var(--success)':'1px solid #e5e7eb', background: txnType==='GOT_PAYMENT'?'#d1fae5':'white', color: txnType==='GOT_PAYMENT'?'var(--success)':'var(--text-muted)', borderRadius:'var(--radius)', fontWeight:'bold'}} onClick={()=>setTxnType('GOT_PAYMENT')}>🟢 GOT</button>
+            </div>
+            <div className="input-group"><label>Amount</label><input type="number" placeholder="₹ 0" className="modal-input" autoFocus value={txnAmount} onChange={(e)=>setTxnAmount(e.target.value)} style={{fontSize:'1.5rem', fontWeight:'bold', color:'var(--primary)'}} /></div>
+            <div className="input-group"><label>Note</label><input type="text" placeholder="e.g. Rice, Sugar" className="modal-input" value={txnDesc} onChange={(e)=>setTxnDesc(e.target.value)} /></div>
+            <button className="btn-primary" onClick={()=>{saveTransaction(); setShowAddModal(false);}}>Save Entry</button>
+          </div>
+        </div>
       )}
+    </div>
+  );
 
-      {/* --- DETAILS VIEW --- */}
-      {view === 'details' && selectedCustomer && (
-        <>
-          <header className="header">
-            <button className="back-btn" onClick={navigateHome}>←</button>
-            <h1>{selectedCustomer.name}</h1>
-          </header>
+  // --- DASHBOARD ---
+  return (
+    <div>
+      {/* HEADER: Logout is now here */}
+      <div className="app-header">
+        <div className="header-left">
+          <span className="app-title">KiranaBook</span>
+          <span className="app-subtitle">My Udhaar</span>
+        </div>
+        <div className="header-icons">
+          <button className="icon-btn">🔍</button>
+          <div className="profile-pic" onClick={handleLogout}>KB</div>
+        </div>
+      </div>
 
-          <div className="transaction-list">
-            {selectedCustomer.transactions.length === 0 ? (
-                <p style={{textAlign:'center', padding:'20px', color:'#888'}}>No transactions yet.</p>
-            ) : (
-                selectedCustomer.transactions.map(t => (
-                <div key={t.id} className="transaction-item">
-                    <div>
-                        <div className="trans-date">{t.date}</div>
-                        <div>{t.type === 'given' ? 'You Gave' : 'You Got'}</div>
-                    </div>
-                    {/* Color Logic for Transactions: Given = Red, Received = Green */}
-                    <div className={`trans-amount ${t.type === 'given' ? 'text-red' : 'text-green'}`}>
-                    ₹{t.amount}
-                    </div>
-                </div>
-                ))
-            )}
+      <div className="container">
+        <div className="search-container">
+          <span className="search-icon">🔍</span>
+          <input type="text" className="search-bar" placeholder="Search customers..." value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} />
+        </div>
+
+        {activeTab === 'home' ? (
+          <div>
+             <h3 className="section-title">Recent Customers</h3>
+             {customers.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).map(renderCustomerCard)}
           </div>
-
-          <div className="action-bar">
-            <button className="action-btn btn-give" onClick={() => {
-              const amt = prompt("Enter amount you GAVE:");
-              if(amt) handleTransaction('given', amt);
-            }}>
-              GAVE <br/> <span style={{fontSize:'12px'}}>(In Red)</span>
-            </button>
-            <button className="action-btn btn-receive" onClick={() => {
-              const amt = prompt("Enter amount you GOT:");
-              if(amt) handleTransaction('received', amt);
-            }}>
-              GOT <br/> <span style={{fontSize:'12px'}}>(In Green)</span>
-            </button>
+        ) : (
+          <div>
+            {Object.entries(getCustomersByCity()).map(([city, list]) => (
+              <div key={city} style={{marginBottom:'25px'}}>
+                <h3 className="section-title" style={{color:'var(--text-muted)'}}>{city}</h3>
+                {list.map(renderCustomerCard)}
+              </div>
+            ))}
           </div>
-        </>
+        )}
+      </div>
+
+      {/* FAB */}
+      <button className="fab" onClick={()=> setShowAddModal(true)}>+</button>
+
+      {/* BOTTOM NAV: 'Add Entry' now works, 'Reports' is fixed */}
+      <div className="nav-bar">
+        <button className={`nav-item ${activeTab==='home'?'active':''}`} onClick={()=>setActiveTab('home')}><span className="nav-icon">🏠</span><span>Home</span></button>
+        <button className="nav-item" onClick={()=>setShowAddModal(true)}><span className="nav-icon">➕</span><span>Add Entry</span></button>
+        <button className={`nav-item ${activeTab==='cities'?'active':''}`} onClick={()=>setActiveTab('cities')}><span className="nav-icon">👥</span><span>Customers</span></button>
+        <button className="nav-item" onClick={()=>alert("Coming Soon!")}><span className="nav-icon">📊</span><span>Reports</span></button>
+      </div>
+
+      {/* ADD CUSTOMER MODAL */}
+      {showAddModal && (
+        <div className="modal-overlay" onClick={(e)=>e.target.className==='modal-overlay' && setShowAddModal(false)}>
+          <div className="modal-content">
+            <button className="btn-close" onClick={()=>setShowAddModal(false)}>×</button>
+            <h2 className="modal-title">Add New Customer</h2>
+            <div className="input-group"><label>Full Name *</label><input className="modal-input" value={newName} onChange={(e)=>setNewName(e.target.value)} placeholder="e.g. Rajesh Kumar" /></div>
+            <div className="input-group"><label>Father's Name</label><input className="modal-input" value={newFather} onChange={(e)=>setNewFather(e.target.value)} placeholder="Optional" /></div>
+            <div className="input-group"><label>City/Location</label><input className="modal-input" value={newCity} onChange={(e)=>setNewCity(e.target.value)} placeholder="e.g. Zirakpur" /></div>
+            <div className="input-group"><label>Mobile Number</label><input className="modal-input" type="number" value={newMobile} onChange={(e)=>setNewMobile(e.target.value)} placeholder="98........" /></div>
+            <button className="btn-primary" onClick={handleAddCustomer}>Save Customer</button>
+          </div>
+        </div>
       )}
     </div>
   );
