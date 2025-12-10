@@ -2,209 +2,223 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-// ⚠️ IMPORTANT: Replace this with your actual Render Backend URL if it changed
+// ⚠️ IMPORTANT: Keep your Render URL
 const BACKEND_URL = "https://kirana-backend-4e93.onrender.com"; 
 
 function App() {
-  // --- AUTH STATE ---
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [pin, setPin] = useState('');
-
-  // --- APP STATE ---
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' or 'cities'
   const [customers, setCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCustomer, setSelectedCustomer] = useState(null); 
-  const [txnType, setTxnType] = useState('GAVE_GOODS');
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [newCustomerName, setNewCustomerName] = useState('');
-  const [newCustomerMobile, setNewCustomerMobile] = useState('');
-  const [viewHistory, setViewHistory] = useState(null); 
-  const [historyList, setHistoryList] = useState([]); 
+  
+  // --- NEW CUSTOMER STATES ---
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newFather, setNewFather] = useState(''); // Father Name
+  const [newCity, setNewCity] = useState('');     // City
+  const [newMobile, setNewMobile] = useState('');
 
-  // --- CHECK LOGIN ---
+  // --- TRANSACTION STATES ---
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [txnAmount, setTxnAmount] = useState('');
+  const [txnDesc, setTxnDesc] = useState('');
+  const [txnType, setTxnType] = useState('GAVE_GOODS');
+  const [history, setHistory] = useState([]);
+
   useEffect(() => {
     const savedLogin = localStorage.getItem('isLoggedIn');
-    if (savedLogin === 'true') {
-        setIsLoggedIn(true);
-        fetchCustomers();
-    }
+    if (savedLogin === 'true') { setIsLoggedIn(true); fetchCustomers(); }
   }, []);
 
   const fetchCustomers = async () => {
     try {
-        const res = await axios.get(`${BACKEND_URL}/api/customers`);
-        setCustomers(res.data);
-    } catch (err) { console.error(err); }
+      const res = await axios.get(`${BACKEND_URL}/api/customers`);
+      setCustomers(res.data);
+    } catch (err) { console.error("Error fetching data"); }
   };
 
-  // --- LOGIN LOGIC ---
-  const handlePinClick = (num) => { if (pin.length < 4) setPin(pin + num); };
-  const handleClear = () => setPin('');
-  const handleLogin = async () => {
+  // --- LOGIN ---
+  const handlePin = (num) => { if (pin.length < 4) setPin(pin + num); };
+  const submitLogin = async () => {
     try {
       const res = await axios.post(`${BACKEND_URL}/api/login`, { pin });
-      if (res.data.success) {
-        setIsLoggedIn(true);
-        localStorage.setItem('isLoggedIn', 'true');
-        fetchCustomers();
-      }
-    } catch (error) { alert("Wrong PIN!"); setPin(''); }
-  };
-  const handleLogout = () => { setIsLoggedIn(false); localStorage.removeItem('isLoggedIn'); setPin(''); };
-
-  // --- ACTIONS ---
-  const handleViewHistory = async (customer) => {
-    try {
-      setViewHistory(customer);
-      const res = await axios.get(`${BACKEND_URL}/api/transactions/${customer._id}`);
-      setHistoryList(res.data);
-    } catch (error) { console.error("Error"); }
+      if (res.data.success) { setIsLoggedIn(true); localStorage.setItem('isLoggedIn','true'); fetchCustomers(); }
+    } catch (e) { alert("Wrong PIN"); setPin(''); }
   };
 
+  // --- ADD CUSTOMER (UPDATED) ---
   const handleAddCustomer = async () => {
-    if (!newCustomerName) return;
-    await axios.post(`${BACKEND_URL}/api/customers`, { name: newCustomerName, mobile: newCustomerMobile });
-    setNewCustomerName(''); setNewCustomerMobile(''); fetchCustomers();
-  };
-
-  const handleSaveTransaction = async () => {
-    if (!amount) return;
-    await axios.post(`${BACKEND_URL}/api/transaction`, {
-      customerId: selectedCustomer._id, type: txnType, amount: Number(amount), description
+    if (!newName) return alert("Name is mandatory!");
+    await axios.post(`${BACKEND_URL}/api/customers`, {
+      name: newName,
+      fatherName: newFather,
+      city: newCity,
+      mobile: newMobile
     });
-    setSelectedCustomer(null); setAmount(''); setDescription(''); 
+    setNewName(''); setNewFather(''); setNewCity(''); setNewMobile('');
+    setShowAddModal(false);
     fetchCustomers();
-    if (viewHistory && viewHistory._id === selectedCustomer._id) handleViewHistory(selectedCustomer);
   };
 
-  // 🗑️ NEW: DELETE TRANSACTION
-  const handleDeleteTransaction = async (txnId) => {
-    if (!window.confirm("Are you sure you want to delete this entry?")) return;
-    
-    try {
-        await axios.delete(`${BACKEND_URL}/api/transaction/${txnId}`);
-        // Refresh History & Balance
-        handleViewHistory(viewHistory);
-        fetchCustomers();
-    } catch (error) {
-        alert("Error deleting transaction");
-    }
+  // --- TRANSACTIONS ---
+  const openHistory = async (customer) => {
+    setSelectedCustomer(customer);
+    const res = await axios.get(`${BACKEND_URL}/api/transactions/${customer._id}`);
+    setHistory(res.data);
   };
 
-  const sendWhatsapp = () => {
-    if (!viewHistory) return;
-    const url = `https://wa.me/91${viewHistory.mobile}?text=${encodeURIComponent(`Namaste ${viewHistory.name} 🙏\nYour pending balance is ₹ ${viewHistory.totalBalance}.`)}`;
-    window.open(url, '_blank');
+  const saveTransaction = async () => {
+    if (!txnAmount) return;
+    await axios.post(`${BACKEND_URL}/api/transaction`, {
+      customerId: selectedCustomer._id, type: txnType, amount: Number(txnAmount), description: txnDesc
+    });
+    setTxnAmount(''); setTxnDesc(''); 
+    fetchCustomers();
+    openHistory(selectedCustomer);
   };
 
-  const filteredCustomers = customers.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const deleteTransaction = async (id) => {
+    if(!window.confirm("Delete this entry?")) return;
+    await axios.delete(`${BACKEND_URL}/api/transaction/${id}`);
+    fetchCustomers();
+    openHistory(selectedCustomer);
+  };
 
-  // === LOCK SCREEN ===
-  if (!isLoggedIn) {
-    return (
-      <div className="login-container">
-        <div className="login-box">
-          <div style={{fontSize: '40px', marginBottom: '10px'}}>🔐</div>
-          <h2>KiranaBook</h2>
-          <p style={{color: '#888', fontSize: '12px'}}>Enter 4-Digit Owner PIN</p>
-          <div className="pin-display">{pin.split('').map(()=>'•').join('')}</div>
-          <div className="num-pad">
-            {[1,2,3,4,5,6,7,8,9].map(num => <button key={num} className="num-btn" onClick={()=>handlePinClick(num)}>{num}</button>)}
-            <button className="num-btn clear" onClick={handleClear}>CLR</button>
-            <button className="num-btn" onClick={()=>handlePinClick(0)}>0</button>
-            <button className="num-btn enter" onClick={handleLogin}>→</button>
-          </div>
+  // --- CITY GROUPING LOGIC ---
+  const getCustomersByCity = () => {
+    const groups = {};
+    customers.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).forEach(c => {
+      const cityName = c.city ? c.city.toUpperCase() : "YOUR CITY";
+      if (!groups[cityName]) groups[cityName] = [];
+      groups[cityName].push(c);
+    });
+    return groups;
+  };
+
+  const renderCustomerCard = (c) => (
+    <div className="card" key={c._id} onClick={() => openHistory(c)}>
+      <div className="card-left">
+        <h3>{c.name}</h3>
+        <p>{c.fatherName ? `S/o ${c.fatherName}` : c.mobile || 'No details'} {c.city ? `• ${c.city}` : ''}</p>
+      </div>
+      <div className={`balance ${c.totalBalance >= 0 ? 'red' : 'green'}`}>
+        ₹ {Math.abs(c.totalBalance)}
+      </div>
+    </div>
+  );
+
+  // === SCREENS ===
+  if (!isLoggedIn) return (
+    <div className="login-container">
+      <div className="login-box">
+        <h1 style={{color: '#4F46E5', marginBottom: '10px'}}>KiranaBook</h1>
+        <p style={{color:'#6B7280'}}>Enter Security PIN</p>
+        <div className="pin-dots">{pin.split('').map(()=>'•').join('')}</div>
+        <div className="num-pad">
+          {[1,2,3,4,5,6,7,8,9].map(n=><button key={n} className="num-btn" onClick={()=>handlePin(n)}>{n}</button>)}
+          <button className="num-btn clr-btn" onClick={()=>setPin('')}>CLR</button>
+          <button className="num-btn" onClick={()=>handlePin(0)}>0</button>
+          <button className="num-btn enter-btn" onClick={submitLogin}>→</button>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
-  // === DASHBOARD ===
-  return (
-    <div className="app-container">
-      <aside className="sidebar">
-        <div className="brand">KB</div>
-        <nav className="side-nav">
-          <a href="#" className={`nav-link ${!viewHistory ? 'active' : ''}`} onClick={() => setViewHistory(null)}>Dashboard</a>
-          <div style={{marginTop:'auto', padding:'20px'}}>
-             <button onClick={handleLogout} style={{background:'rgba(255,255,255,0.1)', border:'none', color:'white', padding:'10px', width:'100%', borderRadius:'6px', cursor:'pointer'}}>🔒 Logout</button>
-          </div>
-        </nav>
-      </aside>
-
-      <main className="main-content">
-        {viewHistory ? (
-          <div>
-            <div className="history-header">
-              <button className="back-btn" onClick={() => setViewHistory(null)}>← Back</button>
-              <div>
-                <h1 style={{fontSize: '24px'}}>{viewHistory.name}</h1>
-                <p style={{color: '#666'}}>Total Balance: <strong style={{color: viewHistory.totalBalance >= 0 ? '#DC2626' : '#059669'}}>₹ {viewHistory.totalBalance}</strong></p>
-              </div>
-              <div style={{marginLeft: 'auto', display: 'flex', gap: '10px'}}>
-                <button className="btn-primary" style={{backgroundColor: '#25D366'}} onClick={sendWhatsapp}>💬 Remind</button>
-                <button className="btn-primary" onClick={() => setSelectedCustomer(viewHistory)}>+ New Entry</button>
-              </div>
+  if (selectedCustomer) return (
+    <div className="container">
+      <div className="app-header">
+        <button style={{border:'none',background:'none',fontSize:'1.5rem'}} onClick={() => setSelectedCustomer(null)}>←</button>
+        <span className="app-title">{selectedCustomer.name}</span>
+        <div style={{width:'30px'}}></div>
+      </div>
+      <div style={{padding:'20px 0', textAlign:'center'}}>
+        <p style={{color:'#6B7280'}}>Current Balance</p>
+        <h1 style={{fontSize:'2.5rem', color: selectedCustomer.totalBalance >= 0 ? '#EF4444' : '#10B981'}}>
+          ₹ {Math.abs(selectedCustomer.totalBalance)}
+        </h1>
+      </div>
+      <div style={{background:'#fff', borderRadius:'20px 20px 0 0', padding:'20px', minHeight:'50vh', boxShadow:'0 -4px 10px rgba(0,0,0,0.05)'}}>
+        <h3 style={{marginBottom:'15px'}}>Transactions</h3>
+        {history.map(txn => (
+          <div className="history-row" key={txn._id}>
+            <div>
+              <p style={{fontWeight:'600'}}>{txn.description || 'Entry'}</p>
+              <p style={{fontSize:'0.75rem', color:'#9CA3AF'}}>{new Date(txn.date).toLocaleDateString()}</p>
             </div>
-            <div className="history-card">
-              {historyList.length === 0 ? (<div style={{padding: '30px', textAlign: 'center', color: '#888'}}>No transactions yet.</div>) : (
-                historyList.map(txn => (
-                  <div className="history-row" key={txn._id}>
-                    <div><span className="date-text">{new Date(txn.date).toLocaleDateString()}</span></div>
-                    <div className="desc-text">{txn.description || (txn.type === 'GAVE_GOODS' ? 'Goods Sold' : 'Payment Received')}</div>
-                    <div style={{textAlign: 'right', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'15px'}}>
-                        <span style={{fontWeight: 'bold', color: txn.type === 'GAVE_GOODS' ? '#DC2626' : '#059669'}}>
-                            {txn.type === 'GAVE_GOODS' ? '🔴' : '🟢'} ₹ {txn.amount}
-                        </span>
-                        {/* 🗑️ DELETE BUTTON */}
-                        <button onClick={() => handleDeleteTransaction(txn._id)} style={{border:'none', background:'none', cursor:'pointer', color:'#ccc', fontSize:'16px'}}>
-                            🗑️
-                        </button>
-                    </div>
-                  </div>
-                ))
-              )}
+            <div style={{textAlign:'right'}}>
+              <span className={`txn-badge ${txn.type === 'GAVE_GOODS' ? 'badge-gave' : 'badge-got'}`}>
+                {txn.type === 'GAVE_GOODS' ? '+' : '-'} ₹{txn.amount}
+              </span>
+              <button onClick={()=>deleteTransaction(txn._id)} style={{border:'none', background:'none', marginLeft:'10px', color:'#D1D5DB'}}>🗑️</button>
             </div>
           </div>
-        ) : (
-          <div>
-            <header className="header"><div className="title"><h1>KiranaBook</h1></div></header>
-            <div style={{marginBottom: '20px'}}><input type="text" placeholder="🔍 Search Name..." className="input-field" style={{width: '100%', padding: '15px'}} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
-            <div className="form-group" style={{background: '#e0f2fe', padding: '15px', borderRadius: '8px'}}>
-              <input type="text" placeholder="Name" className="input-field" value={newCustomerName} onChange={(e) => setNewCustomerName(e.target.value)} />
-              <input type="text" placeholder="Mobile" className="input-field" value={newCustomerMobile} onChange={(e) => setNewCustomerMobile(e.target.value)} />
-              <button onClick={handleAddCustomer} className="btn-primary">Add</button>
-            </div>
-            <div className="transaction-table">
-              <div className="table-header"><div>NAME</div><div>BALANCE</div><div>ACTION</div></div>
-              {filteredCustomers.map((cust) => (
-                <div className="table-row" key={cust._id}>
-                  <div><strong>{cust.name}</strong><br/><span style={{fontSize:'12px', color:'#888'}}>{cust.mobile}</span></div>
-                  <div style={{fontWeight: 'bold', color: cust.totalBalance >= 0 ? '#DC2626' : '#059669'}}>₹ {cust.totalBalance}</div>
-                  <div style={{display: 'flex', gap: '5px'}}>
-                    <button className="btn-small" onClick={() => setSelectedCustomer(cust)}>Add</button>
-                    <button className="btn-small" style={{background: '#eff6ff', color: '#2563eb', borderColor: '#bfdbfe'}} onClick={() => handleViewHistory(cust)}>View</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </main>
+        ))}
+      </div>
+      <button className="btn-primary" style={{position:'fixed', bottom:'20px', right:'20px', width:'auto', borderRadius:'50px', padding:'15px 30px', boxShadow:'0 10px 25px rgba(79, 70, 229, 0.4)'}} 
+        onClick={()=> setShowAddModal(true)}>+ New Entry</button>
       
-      {/* MODAL */}
-      {selectedCustomer && (
-        <div className="modal-overlay">
+      {showAddModal && (
+        <div className="modal-overlay" onClick={(e)=>e.target.className==='modal-overlay' && setShowAddModal(false)}>
           <div className="modal-content">
-            <div className="modal-header"><h3>Update: {selectedCustomer.name}</h3><button className="close-btn" onClick={() => setSelectedCustomer(null)}>×</button></div>
-            <div className="toggle-group">
-              <button className={`toggle-btn ${txnType === 'GAVE_GOODS' ? 'red' : 'inactive'}`} onClick={() => setTxnType('GAVE_GOODS')}>🔴 GAVE</button>
-              <button className={`toggle-btn ${txnType === 'GOT_PAYMENT' ? 'green' : 'inactive'}`} onClick={() => setTxnType('GOT_PAYMENT')}>🟢 GOT</button>
+            <button className="btn-close" onClick={()=>setShowAddModal(false)}>×</button>
+            <h2 className="modal-title">New Transaction</h2>
+            <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
+              <button style={{flex:1, padding:'10px', border:'1px solid #EF4444', background: txnType==='GAVE_GOODS'?'#FEF2F2':'white', color:'#EF4444', borderRadius:'8px'}} onClick={()=>setTxnType('GAVE_GOODS')}>🔴 GAVE</button>
+              <button style={{flex:1, padding:'10px', border:'1px solid #10B981', background: txnType==='GOT_PAYMENT'?'#ECFDF5':'white', color:'#10B981', borderRadius:'8px'}} onClick={()=>setTxnType('GOT_PAYMENT')}>🟢 GOT</button>
             </div>
-            <input type="number" placeholder="Amount" className="input-field full-width" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
-            <input type="text" placeholder="Note (e.g. Rice)" className="input-field full-width" value={description} onChange={(e) => setDescription(e.target.value)} />
-            <button className="save-btn" onClick={handleSaveTransaction}>SAVE ENTRY</button>
+            <input type="number" placeholder="Amount (₹)" className="modal-input" autoFocus value={txnAmount} onChange={(e)=>setTxnAmount(e.target.value)} style={{marginBottom:'10px'}} />
+            <input type="text" placeholder="Description" className="modal-input" value={txnDesc} onChange={(e)=>setTxnDesc(e.target.value)} />
+            <button className="btn-primary" onClick={()=>{saveTransaction(); setShowAddModal(false);}}>Save Record</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="container">
+      <div className="app-header">
+        <span className="app-title">KiranaBook</span>
+        <button onClick={()=>setShowAddModal(true)} style={{color:'var(--primary)', fontWeight:'bold', border:'none', background:'none'}}>+ ADD</button>
+      </div>
+      <input type="text" className="search-bar" placeholder="🔍 Search..." value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} />
+
+      {activeTab === 'dashboard' ? (
+        <div>{customers.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).map(renderCustomerCard)}</div>
+      ) : (
+        <div>
+          {Object.entries(getCustomersByCity()).map(([city, list]) => (
+            <div key={city} className="city-section">
+              <div className="city-header">{city} ({list.length})</div>
+              {list.map(renderCustomerCard)}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="nav-bar">
+        <button className={`nav-item ${activeTab==='dashboard'?'active':''}`} onClick={()=>setActiveTab('dashboard')}>
+          <span className="nav-icon">🏠</span> <span>Home</span>
+        </button>
+        <button className={`nav-item ${activeTab==='cities'?'active':''}`} onClick={()=>setActiveTab('cities')}>
+          <span className="nav-icon">🏙️</span> <span>Cities</span>
+        </button>
+        <button className="nav-item" onClick={()=>{setIsLoggedIn(false); localStorage.removeItem('isLoggedIn')}}>
+          <span className="nav-icon">🔒</span> <span>Logout</span>
+        </button>
+      </div>
+
+      {showAddModal && (
+        <div className="modal-overlay" onClick={(e)=>e.target.className==='modal-overlay' && setShowAddModal(false)}>
+          <div className="modal-content">
+            <button className="btn-close" onClick={()=>setShowAddModal(false)}>×</button>
+            <h2 className="modal-title">Add Customer</h2>
+            <div className="input-group"><label>Name *</label><input className="modal-input" value={newName} onChange={(e)=>setNewName(e.target.value)} /></div>
+            <div className="input-group"><label>Father's Name</label><input className="modal-input" value={newFather} onChange={(e)=>setNewFather(e.target.value)} /></div>
+            <div className="input-group"><label>City</label><input className="modal-input" value={newCity} onChange={(e)=>setNewCity(e.target.value)} /></div>
+            <div className="input-group"><label>Mobile</label><input className="modal-input" type="number" value={newMobile} onChange={(e)=>setNewMobile(e.target.value)} /></div>
+            <button className="btn-primary" onClick={handleAddCustomer}>Save</button>
           </div>
         </div>
       )}
