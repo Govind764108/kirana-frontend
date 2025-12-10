@@ -1,131 +1,270 @@
-/* --- "MY UDHAAR" BLUE THEME (Fixed) --- */
+/* App.css */
 :root {
-  --primary: #1a56db;      /* Professional Blue */
-  --primary-dark: #0f3cb3;
-  --success: #059669;      /* Green for Paid */
-  --danger: #dc2626;       /* Red for Credit/Due */
-  --bg: #f3f4f6;           
-  --surface: #ffffff;      
-  --text-main: #1f2937;
-  --text-muted: #6b7280;
-  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --radius: 12px;
+  --primary-color: #007bff;
+  --bg-color: #f4f6f8;
+  --white: #ffffff;
+  --text-dark: #333;
+  --text-grey: #666;
+  --danger: #dc3545; /* Red */
+  --success: #28a745; /* Green */
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-body { background-color: var(--bg); color: var(--text-main); padding-bottom: 90px; }
+* {
+  box-sizing: border-box;
+}
 
-/* --- HEADER --- */
-.app-header {
-  background: var(--primary);
-  padding: 16px 20px;
-  position: sticky; top: 0; z-index: 10;
-  display: flex; justify-content: space-between; align-items: center;
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--bg-color);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-container {
+  max-width: 480px; /* Mobile width constraint */
+  margin: 0 auto;
+  min-height: 100vh;
+  background-color: var(--white);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Header */
+.header {
+  background-color: var(--primary-color);
+  color: var(--white);
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.back-btn {
+  background: none;
+  border: none;
   color: white;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  font-size: 24px;
+  margin-right: 15px;
+  cursor: pointer;
+  padding: 0;
 }
-.header-left { display: flex; flex-direction: column; }
-.app-title { font-size: 1.25rem; font-weight: 700; }
-.app-subtitle { font-size: 0.875rem; opacity: 0.9; }
-.header-icons { display: flex; gap: 15px; align-items: center; }
-.icon-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
-.profile-pic { width: 35px; height: 35px; background: #e0e7ff; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; cursor: pointer; border: 2px solid white; }
 
-/* --- CONTAINER & SEARCH --- */
-.container { padding: 15px; max-width: 600px; margin: 0 auto; }
-.section-title { font-size: 1rem; font-weight: 700; margin-bottom: 12px; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; }
-.search-container { position: relative; margin-bottom: 20px; }
-.search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
-.search-bar { width: 100%; padding: 14px 16px 14px 45px; border: 1px solid #e5e7eb; border-radius: var(--radius); background: var(--surface); font-size: 1rem; outline: none; transition: all 0.2s; }
-.search-bar:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1); }
-
-/* --- CUSTOMER CARD (Initials Version) --- */
-.card {
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 14px;
-  margin-bottom: 10px;
-  box-shadow: var(--shadow);
-  display: flex; align-items: center;
-  cursor: pointer; transition: transform 0.1s;
-  border: 1px solid #f3f4f6;
+.header h1 {
+  margin: 0;
+  font-size: 20px;
+  flex-grow: 1;
 }
-.card:active { transform: scale(0.98); background-color: #f9fafb; }
 
-/* Icon Circle now holds TEXT Initials */
-.card-icon {
-  width: 45px; height: 45px;
+/* Customer List */
+.customer-list {
+  padding: 10px;
+  padding-bottom: 80px; /* Space for floating button */
+}
+
+.customer-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.customer-card:active {
+  background-color: #f9f9f9;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  background-color: #e0e0e0;
   border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1rem; /* Perfect size for "MK" */
-  font-weight: 700;
-  margin-right: 14px; flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: var(--text-grey);
+  margin-right: 15px;
 }
-.icon-credit { background: #dbeafe; color: var(--primary); }
-.icon-paid { background: #d1fae5; color: var(--success); }
 
-.card-info { flex-grow: 1; overflow: hidden; }
-.card-info h3 { font-size: 1rem; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-details { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+.info {
+  flex-grow: 1;
+}
 
-.card-right { text-align: right; min-width: 85px; flex-shrink: 0; }
-.amount { font-size: 1rem; font-weight: 800; }
-.status { font-size: 0.75rem; font-weight: 600; display: block; margin-top: 2px; }
-.txt-credit { color: var(--primary); }
-.txt-paid { color: var(--success); }
+.name {
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
 
-/* --- FLOATING BUTTON --- */
+.balance {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* Text Colors */
+.text-red {
+  color: var(--danger);
+}
+
+.text-green {
+  color: var(--success);
+}
+
+/* Floating Action Button (FAB) */
 .fab {
-  position: fixed; bottom: 85px; right: 20px;
-  width: 56px; height: 56px;
-  background: var(--primary); color: white;
-  border-radius: 50%; border: none;
-  font-size: 2rem; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 10px 15px -3px rgba(26, 86, 219, 0.4);
-  cursor: pointer; z-index: 90; transition: transform 0.2s;
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  width: 56px;
+  height: 56px;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  border: none;
+  cursor: pointer;
+  z-index: 20;
 }
-.fab:active { transform: scale(0.95); }
 
-/* --- BOTTOM NAV --- */
-.nav-bar {
-  position: fixed; bottom: 0; width: 100%;
-  background: var(--surface); border-top: 1px solid #e5e7eb;
-  display: flex; justify-content: space-around;
-  padding: 10px 0; z-index: 100;
-  padding-bottom: max(10px, env(safe-area-inset-bottom));
+/* CENTERED MODAL OVERLAY */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  align-items: center; /* Center Vertically */
+  justify-content: center; /* Center Horizontally */
 }
-.nav-item {
-  border: none; background: none;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  color: var(--text-muted); font-size: 0.7rem; font-weight: 500;
-  cursor: pointer; width: 70px;
+
+/* CENTERED MODAL CONTENT */
+.modal-content {
+  background: white;
+  width: 90%;
+  max-width: 400px;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  /* No animation needed for simple center pop, or simple fade in */
+  animation: fadeIn 0.2s ease-out;
 }
-.nav-item.active { color: var(--primary); font-weight: 700; }
-.nav-icon { font-size: 1.4rem; }
 
-/* --- MODALS --- */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); display: flex; align-items: flex-end; z-index: 200; }
-.modal-content { background: var(--surface); width: 100%; border-radius: 20px 20px 0 0; padding: 25px; padding-bottom: 40px; animation: slideUp 0.25s ease-out; max-width: 600px; margin: 0 auto; max-height: 85vh; overflow-y: auto; }
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.modal-title { font-size: 1.25rem; margin-bottom: 20px; font-weight: 700; }
-.input-group { margin-bottom: 15px; }
-.input-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
-.modal-input { width: 100%; padding: 14px; border: 1px solid #d1d5db; border-radius: var(--radius); font-size: 1rem; background: #f9fafb; transition: all 0.2s; }
-.modal-input:focus { border-color: var(--primary); background: #fff; outline: none; }
-.btn-primary { width: 100%; background: var(--primary); color: white; padding: 16px; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 10px; }
-.btn-close { position: absolute; top: 15px; right: 15px; background: #f3f4f6; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; color: #6b7280; display:flex; align-items:center; justify-content:center;}
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
 
-/* --- HISTORY ROWS --- */
-.history-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #f3f4f6; }
-.txn-badge { padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; }
-.badge-gave { background: #fee2e2; color: var(--danger); }
-.badge-got { background: #d1fae5; color: var(--success); }
+.modal-header {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
 
-/* --- LOGIN --- */
-.login-container { height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--primary); }
-.login-box { background: var(--surface); padding: 2rem; border-radius: 24px; text-align: center; width: 85%; max-width: 350px; }
-.pin-dots { letter-spacing: 15px; font-size: 2rem; margin: 20px 0; color: var(--primary); height: 40px; }
-.num-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
-.num-btn { background: var(--bg); border: none; padding: 15px; font-size: 1.3rem; border-radius: 50%; font-weight: bold; cursor: pointer; aspect-ratio: 1; }
-.enter-btn { background-color: var(--primary); color: white; }
-.clr-btn { color: var(--danger); font-size: 1rem; }
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-cancel {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.btn-save {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* Transaction Details Page */
+.transaction-list {
+  padding: 10px;
+}
+
+.transaction-item {
+  background: white;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trans-date {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.trans-amount {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.action-bar {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  max-width: 480px;
+  background: white;
+  border-top: 1px solid #ddd;
+  display: flex;
+  padding: 10px;
+  gap: 10px;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 15px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btn-give {
+  background-color: #ffebee;
+  color: var(--danger);
+}
+
+.btn-receive {
+  background-color: #e8f5e9;
+  color: var(--success);
+}
