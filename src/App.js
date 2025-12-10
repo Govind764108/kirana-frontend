@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-// ⚠️ KEEP YOUR RENDER URL
 const BACKEND_URL = "https://kirana-backend-4e93.onrender.com"; 
 
 function App() {
@@ -45,6 +44,15 @@ function App() {
     } catch (e) { alert("Wrong PIN"); setPin(''); }
   };
   const handlePin = (n) => { if (pin.length < 4) setPin(pin + n); };
+  
+  // NEW: Logout Function
+  const handleLogout = () => {
+    if(window.confirm("Do you want to logout?")) {
+        setIsLoggedIn(false); 
+        localStorage.removeItem('isLoggedIn');
+        setPin('');
+    }
+  };
 
   const handleAddCustomer = async () => {
     if (!newName) return alert("Name is mandatory!");
@@ -79,24 +87,31 @@ function App() {
   const getCustomersByCity = () => {
     const groups = {};
     customers.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).forEach(c => {
-      const cityName = c.city ? c.city.toUpperCase() : "Other";
+      const cityName = c.city ? c.city.toUpperCase() : "OTHER";
       if (!groups[cityName]) groups[cityName] = [];
       groups[cityName].push(c);
     });
     return groups;
   };
 
-  // === NEW CARD RENDERER (Matches Reference Image) ===
+  // === 1. INITIALS HELPER (Returns 'MK' for 'Makhanlal') ===
+  const getInitials = (name) => {
+    if (!name) return "KB";
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  // === 2. CARD RENDERER (Fixed) ===
   const renderCustomerCard = (c) => {
     const isCredit = c.totalBalance >= 0;
     return (
       <div className="card" key={c._id} onClick={() => openHistory(c)}>
-        {/* 1. ICON (Blue for Credit, Green for Paid) */}
+        {/* AVATAR WITH INITIALS */}
         <div className={`card-icon ${isCredit ? 'icon-credit' : 'icon-paid'}`}>
-          {isCredit ? '📄' : '💰'}
+          {getInitials(c.name)}
         </div>
         
-        {/* 2. INFO (Name & Details) */}
         <div className="card-info">
           <h3>{c.name}</h3>
           <p className="card-details">
@@ -104,7 +119,6 @@ function App() {
           </p>
         </div>
 
-        {/* 3. STATUS (Amount & Text) */}
         <div className="card-right">
           <div className={`amount ${isCredit ? 'txt-credit' : 'txt-paid'}`}>
             ₹ {Math.abs(c.totalBalance)}
@@ -147,7 +161,7 @@ function App() {
         <p style={{fontSize:'0.9rem', opacity:0.9, marginBottom:'5px'}}>Total Balance</p>
         <h1 style={{fontSize:'3rem', fontWeight:'800'}}>₹ {Math.abs(selectedCustomer.totalBalance)}</h1>
         <span style={{background:'rgba(255,255,255,0.2)', padding:'6px 12px', borderRadius:'20px', fontSize:'0.85rem', fontWeight:'600', marginTop:'10px', display:'inline-block'}}>
-            {selectedCustomer.totalBalance >= 0 ? 'To Receive (Credit)' : 'To Pay (Advance)'}
+            {selectedCustomer.totalBalance >= 0 ? 'You will Receive' : 'You need to Pay'}
         </span>
       </div>
       <div className="container" style={{marginTop:'-20px'}}>
@@ -171,7 +185,7 @@ function App() {
       </div>
       <button className="fab" onClick={()=> setShowAddModal(true)}>+</button>
       
-      {/* TRANSACTION MODAL */}
+      {/* MODAL IS DOWN BELOW */}
       {showAddModal && (
         <div className="modal-overlay" onClick={(e)=>e.target.className==='modal-overlay' && setShowAddModal(false)}>
           <div className="modal-content">
@@ -193,7 +207,7 @@ function App() {
   // --- DASHBOARD ---
   return (
     <div>
-      {/* 1. NEW HEADER */}
+      {/* HEADER: Logout is now here */}
       <div className="app-header">
         <div className="header-left">
           <span className="app-title">KiranaBook</span>
@@ -201,18 +215,16 @@ function App() {
         </div>
         <div className="header-icons">
           <button className="icon-btn">🔍</button>
-          <div className="profile-pic">KB</div>
+          <div className="profile-pic" onClick={handleLogout}>KB</div>
         </div>
       </div>
 
       <div className="container">
-        {/* 2. SEARCH BAR */}
         <div className="search-container">
           <span className="search-icon">🔍</span>
           <input type="text" className="search-bar" placeholder="Search customers..." value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} />
         </div>
 
-        {/* 3. CUSTOMER LIST (Refreshed UI) */}
         {activeTab === 'home' ? (
           <div>
              <h3 className="section-title">Recent Customers</h3>
@@ -222,7 +234,7 @@ function App() {
           <div>
             {Object.entries(getCustomersByCity()).map(([city, list]) => (
               <div key={city} style={{marginBottom:'25px'}}>
-                <h3 className="section-title" style={{fontSize:'0.9rem', textTransform:'uppercase', letterSpacing:'1px', color:'var(--text-muted)'}}>{city}</h3>
+                <h3 className="section-title" style={{color:'var(--text-muted)'}}>{city}</h3>
                 {list.map(renderCustomerCard)}
               </div>
             ))}
@@ -230,15 +242,15 @@ function App() {
         )}
       </div>
 
-      {/* 4. FLOATING ACTION BUTTON */}
+      {/* FAB */}
       <button className="fab" onClick={()=> setShowAddModal(true)}>+</button>
 
-      {/* 5. NEW BOTTOM NAV */}
+      {/* BOTTOM NAV: 'Add Entry' now works, 'Reports' is fixed */}
       <div className="nav-bar">
         <button className={`nav-item ${activeTab==='home'?'active':''}`} onClick={()=>setActiveTab('home')}><span className="nav-icon">🏠</span><span>Home</span></button>
-        <button className="nav-item"><span className="nav-icon">➕</span><span>Add Entry</span></button>
+        <button className="nav-item" onClick={()=>setShowAddModal(true)}><span className="nav-icon">➕</span><span>Add Entry</span></button>
         <button className={`nav-item ${activeTab==='cities'?'active':''}`} onClick={()=>setActiveTab('cities')}><span className="nav-icon">👥</span><span>Customers</span></button>
-        <button className="nav-item" onClick={()=>{setIsLoggedIn(false); localStorage.removeItem('isLoggedIn')}}><span className="nav-icon">📊</span><span>Reports</span></button>
+        <button className="nav-item" onClick={()=>alert("Coming Soon!")}><span className="nav-icon">📊</span><span>Reports</span></button>
       </div>
 
       {/* ADD CUSTOMER MODAL */}
