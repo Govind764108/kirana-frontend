@@ -50,7 +50,7 @@ body { background-color: var(--bg); color: var(--text-main); padding-bottom: 80p
 .city-header { font-size: 1.1rem; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; padding-left: 5px; text-transform: uppercase; letter-spacing: 1px; }
 
 /* --- MODAL --- */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); display: flex; align-items: flex-end; z-index: 50; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); display: flex; align-items: flex-end; z-index: 200; }
 .modal-content { background: var(--surface); width: 100%; border-radius: 24px 24px 0 0; padding: 25px; animation: slideUp 0.3s ease-out; max-width: 600px; margin: 0 auto; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .modal-title { font-size: 1.2rem; margin-bottom: 20px; }
