@@ -128,15 +128,36 @@ function App() {
   };
 
   // DELETE Customer
+  // NEW DIAGNOSTIC DELETE FUNCTION
   const deleteCustomer = async (id) => {
     if(!window.confirm("ARE YOU SURE?\n\nThis will permanently delete this customer.")) return;
+    
     try {
+      console.log("Attempting to delete ID:", id); // Log the ID
       await axios.delete(`${BACKEND_URL}/api/customers/${id}`);
+      
+      // If successful:
+      alert("✅ Deleted Successfully!");
       setSelectedCustomer(null); 
       fetchCustomers();          
       window.history.back();     
+
     } catch (err) {
-      alert("Backend Error: The server does not allow deleting customers.");
+      console.error("Delete failed:", err);
+      
+      // CHECK THE EXACT ERROR CODE
+      if (err.response && err.response.status === 404) {
+          alert("🔴 ERROR 404: Your Backend is still running the OLD Code.\n\nFix: Go to Render Dashboard > Manual Deploy > Clear Build Cache.");
+      } 
+      else if (err.response && err.response.status === 500) {
+          alert(`🔴 ERROR 500: Database Crash.\n\nDetails: ${err.response.data.error}`);
+      } 
+      else if (err.code === "ERR_NETWORK") {
+          alert("🔴 NETWORK ERROR: Server is sleeping or internet is down.");
+      }
+      else {
+          alert(`🔴 UNKNOWN ERROR: ${err.message}`);
+      }
     }
   };
 
